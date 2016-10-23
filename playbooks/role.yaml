@@ -1,0 +1,47 @@
+---
+- name: Demo DaemonSets
+  hosts: demo
+  connection: local
+  gather_facts: false
+  vars:
+    namespace: guestbook
+    services:
+    - name: redis-master
+      replicas: 1
+      labels:
+        app: redis
+        tier: backend
+        role: master
+      ports:
+      - port: 6739
+        targetPort: 6379
+      service_type: ClusterIP
+      image: gcr.io/google_containers/redis:e2e
+  tasks:
+    - name: Delete Cluster Role daemonset-admin
+      k8s_resource:
+        state: absent
+        resource_desc:
+          apiVersion: v1
+          kind: ClusterRole
+          metadata:
+            name: daemonset-admin
+    - name: Create ClusterRole
+      k8s_resource:
+        resource_desc:
+          apiVersion: v1
+          kind: ClusterRole
+          metadata:
+            name: daemonset-admin
+          rules:
+          - resources:
+            - daemonsets
+            apiGroups:
+            - extensions
+            verbs:
+            - create
+            - get
+            - list
+            - watch
+            - delete
+            - update
