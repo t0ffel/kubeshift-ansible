@@ -9,10 +9,10 @@ author: "Anton Sherkhonov, @t0ffel"
 notes:
 requirements:
 options:
-    name:
-        required: true
+    resource_desc:
+        default: None
         description:
-            - Name of the pod.
+            - JSON/YAML description of the resource
     state:
         required: false
         default: "present"
@@ -65,16 +65,6 @@ options:
         default: "no"
         choices: [ "yes", "no" ]
             - Whether to skip tls verification.
-    labels:
-        required: false
-        default: None
-        description:
-            - A dictionary of the labels to apply to this pod.
-    annotations:
-        required: false
-        default: None
-        description:
-            - A dictionary of the annotations to apply to this pod.
 '''
 EXAMPLES = '''
 '''
@@ -112,36 +102,21 @@ def main():
     # Client configuration
     user = getpass.getuser()
     config = kubeshift.Config.from_file("/home/%s/.kube/config" % user)
-    client = kubeshift.KubernetesClient(config)
+    client = kubeshift.OpenshiftClient(config)
 
-    name = module.params.get('name')
-    kind = module.params.get('kind')
-    api_version = module.params.get('api_version')
     state = module.params.get('state')
-    # rules = module.params.get('rules')
 
     k8s_object = module.params.get('resource_desc')
-    # {
-    #     "apiVersion": api_version,
-    #     "kind": kind,
-    #     "metadata": {
-    #         "name": name
-    #     },
-    #     'rules': rules
-    # }
 
     try:
         if state == 'present':
-            response = client.create(k8s_object)
+            res = client.ensure_present(k8s_object)
         else:
-            response = client.delete(k8s_object)
+            res = client.ensure_absent(k8s_object)
     except KubeRequestError as err:
         module.fail_json(msg=err.message)
 
-    result = {
-        'response': response,
-        'changed': True}
-    module.exit_json(**result)
+    module.exit_json(**res)
 
 # import module snippets
 from ansible.module_utils.basic import *
