@@ -153,13 +153,28 @@
                   configMap:
                     name: fluent-catchall-cm
 
-    # - name: Add SA to privileged SCC
-    #   k8s_resource:
-    #     resource_desc:
-    #       apiVersion: v1
-    #       kind: SecurityContextConstraints
-    #       metadata:
-    #         name: privileged
-    #         namespace: "{{ namespace }}"
-    #         labels:
-    #           logging-infra: fluentd
+    - name: Add SA to privileged SCC
+      k8s_contains:
+        target_resource:
+          apiVersion: v1
+          kind: SecurityContextConstraints
+          metadata:
+            name: privileged
+        patch:
+          users:
+          - "system:serviceaccount:{{ namespace }}:aggregated-logging-fluentd"
+
+    - name: "oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:{{ logging_project }}:aggregated-logging-fluentd"
+      k8s_contains:
+        target_resource:
+          apiVersion: v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: cluster-readers
+        patch:
+          userNames:
+          - "system:serviceaccount:{{ namespace }}:aggregated-logging-fluentd"
+          subjects:
+          - kind: ServiceAccount
+            namespace: "{{ namespace }}"
+            name: aggregated-logging-fluentd
